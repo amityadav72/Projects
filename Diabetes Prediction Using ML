@@ -1,0 +1,76 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load and Explore the Dataset
+data = pd.read_csv("/kaggle/input/daibeties1/diabetes.csv")
+data.head()
+data.describe()
+data.info()
+data.isna().sum()
+data.duplicated().sum()
+
+# Data Visualization
+plt.figure(figsize=(6, 4))
+sns.countplot(x='Outcome', data=data)
+plt.show()
+
+plt.figure(figsize=(3, 3))
+for i, col in enumerate(['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']):
+    plt.subplot(3, 3, i + 1)
+    sns.boxplot(x=col, data=data)
+plt.show()
+
+sns.pairplot(data, hue='Outcome')
+plt.show()
+
+plt.figure(figsize=(12, 12))
+for i, col in enumerate(['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']):
+    plt.subplot(3, 3, i + 1)
+    sns.histplot(x=col, data=data, kde=True)
+plt.show()
+
+plt.figure(figsize=(12, 12))
+sns.heatmap(data.corr(), vmin=-1.0, center=0, cmap='RdBu_r', annot=True)
+plt.show()
+
+# Data Preprocessing
+from sklearn.preprocessing import StandardScaler
+sc_X = StandardScaler()
+X = pd.DataFrame(sc_X.fit_transform(data.drop(["Outcome"], axis=1)),
+                 columns=['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age'])
+
+y = data['Outcome']
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+# K-Nearest Neighbors (KNN) Model
+from sklearn.neighbors import KNeighborsClassifier
+
+test_scores = []
+train_scores = []
+
+for i in range(1, 15):
+    knn = KNeighborsClassifier(i)
+    knn.fit(X_train, y_train)
+    train_scores.append(knn.score(X_train, y_train))
+    test_scores.append(knn.score(X_test, y_test))
+
+max_test_score = max(test_scores)
+test_scores_index = [i for i, v in enumerate(test_scores) if v == max_test_score]
+print("Max test score {} % and k = {}".format(max_test_score * 100, list(map(lambda x: x + 1, test_scores_index))))
+
+plt.figure(figsize=(12, 5))
+p = sns.lineplot(x=range(1, 15), y=train_scores, marker='*', label='Train Score')
+p = sns.lineplot(x=range(1, 15), y=test_scores, marker='o', label='Test Score')
+
+knn = KNeighborsClassifier(13)
+knn.fit(X_train, y_train)
+knn.score(X_test, y_test)
+
+# Model Evaluation
+y_pred = knn.predict(X_test)
+confusion_matrix(y_test, y_pred)
+classification_report(y_test, y_pred)
